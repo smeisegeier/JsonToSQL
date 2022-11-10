@@ -9,10 +9,77 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace JsonToSQL
-{   
+{
     public class JsonConvert
     {
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <value></value>
         public string DatabaseName { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <value></value>
+        public string DefaultTableName { get; set; }
+
+        /// <summary>
+        ///
+        /// </summary>
+        /// <value></value>
+        public string SchemaName { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <value></value>
+        public bool HasDropTableStatement { get; set; }
+        public bool HasCreateDbStatement { get; set; }
+
+        public string CreateDbStatement =>
+            "USE master" + Environment.NewLine +
+            "GO" + Environment.NewLine + Environment.NewLine +
+            "IF NOT EXISTS(SELECT name FROM sys.databases" + Environment.NewLine +
+           $"WHERE name = '{DatabaseName}')" + Environment.NewLine +
+           $"CREATE DATABASE {DatabaseName}" + Environment.NewLine +
+            "GO" + Environment.NewLine;
+
+        // should only be a method if multiple table names are specified (which aren't though)
+        public string DropTableStatement(string tableName) =>
+           $"USE {DatabaseName}" + Environment.NewLine +
+            "GO" + Environment.NewLine + Environment.NewLine +
+           $"IF OBJECT_ID('{SchemaName}.{tableName}', 'U') IS NOT NULL" + Environment.NewLine +
+           $"DROP TABLE {SchemaName}.{tableName}" + Environment.NewLine +
+            "GO" + Environment.NewLine + Environment.NewLine;
+
+
+        /// <summary>
+        /// Creates a JsonConvert object for generation of DDL Code
+        /// </summary>
+        /// <param name="databaseName">name of the database</param>
+        /// <param name="defaultTableName">if json parser wont find multiple tables, this defualt will be used</param>
+        /// <param name="schemaName">name of used schema (default dbo)</param>
+        /// <param name="hasDropTableStatement">is drop table if exists required? (default true)</param>
+        /// <param name="HasCreateDbStatement">is craete db if not exists required? (default false)</param>
+        public JsonConvert(string databaseName
+            , string defaultTableName
+            , string schemaName = "dbo"
+            , bool hasDropTableStatement = true
+            , bool hasCreateDbStatement = false
+        )
+        {
+            DatabaseName = databaseName;
+            DefaultTableName = defaultTableName;
+            SchemaName = schemaName;
+            HasDropTableStatement = hasDropTableStatement;
+            HasCreateDbStatement = hasCreateDbStatement;
+        }
+
+
+        // ? Id will always be auto generated, right?
+        // todo make non static
 
         static DataSet ds = new DataSet();
         static List<TableRelation> relations = new List<TableRelation>();
@@ -31,26 +98,21 @@ namespace JsonToSQL
 
         public string ToSQL(string json)
         {
-            if (string.IsNullOrWhiteSpace(this.DatabaseName))
-            {
-                this.DatabaseName = Constants.DefaultDbName;
-            }
-
             ds.DataSetName = this.DatabaseName;
 
             var jToken = JToken.Parse(json);
 
             if (jToken.Type == JTokenType.Object) //single json object 
             {
-                ParseJObject(jToken.ToObject<JObject>(), this.DatabaseName, string.Empty, 1, 1);
+                ParseJObject(jToken.ToObject<JObject>(), this.DefaultTableName, string.Empty, 1, 1);
             }
             else //multiple json objects in array 
             {
                 var counter = 1;
-                
+                // HACK there are no derived table names here
                 foreach (var jObject in jToken.Children<JObject>())
-                {                                 
-                    ParseJObject(jObject, this.DatabaseName, string.Empty, counter, counter);
+                {
+                    ParseJObject(jObject, this.DefaultTableName, string.Empty, counter, counter);
                     counter++;
                 }
             }
@@ -67,18 +129,19 @@ namespace JsonToSQL
                     target.Columns.Remove(rel.Source + "ID");
                     continue;
                 }
-               
+
                 source.PrimaryKey = new DataColumn[] { source.Columns[0] };
 
                 ForeignKeyConstraint fk = new ForeignKeyConstraint("ForeignKey", source.Columns[0], target.Columns[1]);
                 target.Constraints.Add(fk);
             }
 
-            string schema = SqlScript.GenerateDbSchema(ds, relations);
+            string createScript = GenerateDbSchema(ds, relations, HasDropTableStatement, HasCreateDbStatement);
 
-            string data = schema + SqlScript.GenerateInsertQueries(ds, relations);
 
-            return data;
+            string script = createScript + SqlScript.GenerateInsertQueries(ds, relations);
+
+            return script;
         }
 
 
@@ -101,14 +164,14 @@ namespace JsonToSQL
                     listColumns.Add(new SqlColumn { Name = parentTableName + "ID", Value = fkValue.ToString(), Type = "System.Int32" });
                     dic[parentTableName + "ID"] = fkValue.ToString(); //foreign key
                 }
-                
+
                 foreach (JProperty property in jObject.Properties())
                 {
                     string key = property.Name;
                     JToken jToken = property.Value;
-                    
+
                     if (jToken.Type == JTokenType.Object)
-                    {                        
+                    {
                         var jO = jToken.ToObject<JObject>();
                         ParseJObject(jO, tableName + "_" + key, tableName, pkValue, pkValue);
                         //pkValue = pkValue + 1;
@@ -136,7 +199,7 @@ namespace JsonToSQL
                     else
                     {
                         listColumns.Add(new SqlColumn { Name = key, Value = jToken.ToString(), Type = "System." + jToken.Type.ToString() });
-                        dic[key] = jToken.ToString(); 
+                        dic[key] = jToken.ToString();
                     }
                 }
 
@@ -150,7 +213,7 @@ namespace JsonToSQL
                         if (!ds.Tables[dt.TableName].Columns.Contains(key))
                         {
                             ds.Tables[dt.TableName].Columns.Add(AddColumn(key, "System.String", false));
-                        }                        
+                        }
                     }
 
                     DataRow dr = ds.Tables[dt.TableName].NewRow();
@@ -161,7 +224,7 @@ namespace JsonToSQL
 
                     ds.Tables[dt.TableName].Rows.Add(dr);
                 }
-                else if(dic.Keys.Count > 1)
+                else if (dic.Keys.Count > 1)
                 {
                     for (int i = 0; i < dic.Keys.Count; i++)
                     {
@@ -189,7 +252,7 @@ namespace JsonToSQL
             }
         }
 
-        DataColumn AddColumn(string name, string type, bool isPrimaryKey)
+        private DataColumn AddColumn(string name, string type, bool isPrimaryKey)
         {
             return new DataColumn()
             {
@@ -202,13 +265,39 @@ namespace JsonToSQL
             };
         }
 
-        
+        public string GenerateDbSchema(DataSet ds, List<TableRelation> relations, bool hasDropTableStatement, bool HasCreateDbStatement)
+        {
+            StringBuilder sb = new StringBuilder();
 
-        
+            if (HasCreateDbStatement)
+            {
+                sb.AppendLine(CreateDbStatement);
+            }
 
-       
+
+            foreach (TableRelation rel in relations.OrderByDescending(i => i.Order))
+            {
+                DataTable table = ds.Tables[rel.Target];
+
+                if (HasDropTableStatement)
+                {
+                    sb.AppendLine(DropTableStatement(table.TableName));
+                }
+
+                sb.AppendLine(SqlScript.CreateTABLE(table));
+                sb.AppendLine("GO");
+                sb.AppendLine(string.Empty);
+            }
+
+            return sb.ToString();
+        }
 
 
-        
+
+
+
+
+
+
     }
 }

@@ -11,10 +11,8 @@ namespace JsonToSql
         public static void Main(string[] args)
         {
             string json = File.ReadAllText("tests/DSICH.json");
-            string dbName = "TestDb";
 
-            var converter = new JsonConvert();
-            converter.DatabaseName = dbName;
+            var converter = new JsonConvert("JsonDb", "DSICH");
             string result = converter.ToSQL(json);
             Console.WriteLine(result);
         }

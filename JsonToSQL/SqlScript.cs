@@ -8,30 +8,8 @@ namespace JsonToSQL
 {
     internal class SqlScript
     {
-        public static string GenerateDbSchema(DataSet ds, List<TableRelation> relations)
-        {
-                        
-            StringBuilder sb = new StringBuilder();
 
-            sb.AppendFormat("CREATE DATABASE {0}", ds.DataSetName);
-            sb.AppendLine(string.Empty);
-            sb.AppendLine("GO" + Environment.NewLine);
-            sb.AppendFormat("USE {0}", ds.DataSetName);
-            sb.AppendLine(string.Empty);
-            sb.AppendLine("GO" + Environment.NewLine);
-
-            foreach (TableRelation rel in relations.OrderByDescending(i => i.Order))
-            {
-                DataTable table = ds.Tables[rel.Target];
-                sb.AppendLine(CreateTABLE(table));
-                sb.AppendLine("GO");
-                sb.AppendLine(string.Empty);
-            }
-
-            return sb.ToString();
-        }
-
-        static string CreateTABLE(DataTable table)
+        public static string CreateTABLE(DataTable table)
         {
             string sqlsc;
             sqlsc = "CREATE TABLE [" + table.TableName + "](";
