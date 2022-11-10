@@ -4,7 +4,7 @@ using System.Text;
 
 namespace JsonToSQL
 {
-    public class TableRelation
+    internal class TableRelation
     {
         public string Source { get; set; }
         public string Target { get; set; }

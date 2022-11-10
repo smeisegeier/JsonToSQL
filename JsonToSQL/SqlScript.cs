@@ -8,7 +8,6 @@ namespace JsonToSQL
 {
     internal class SqlScript
     {
-
         public static string CreateTABLE(DataTable table)
         {
             string sqlsc;

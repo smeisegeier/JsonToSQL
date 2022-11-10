@@ -13,56 +13,40 @@ namespace JsonToSQL
     public class JsonConvert
     {
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <value></value>
-        public string DatabaseName { get; set; }
+        private string _databaseName;
+        private string _defaultTableName;
+        private string _schemaName;
+        private bool _hasDropTableStatement;
+        private bool _hasCreateDbStatement;
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <value></value>
-        public string DefaultTableName { get; set; }
-
-        /// <summary>
-        ///
-        /// </summary>
-        /// <value></value>
-        public string SchemaName { get; set; }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <value></value>
-        public bool HasDropTableStatement { get; set; }
-        public bool HasCreateDbStatement { get; set; }
-
-        public string CreateDbStatement =>
+        private string CreateDbStatement =>
             "USE master" + Environment.NewLine +
             "GO" + Environment.NewLine + Environment.NewLine +
             "IF NOT EXISTS(SELECT name FROM sys.databases" + Environment.NewLine +
-           $"WHERE name = '{DatabaseName}')" + Environment.NewLine +
-           $"CREATE DATABASE {DatabaseName}" + Environment.NewLine +
+           $"WHERE name = '{_databaseName}')" + Environment.NewLine +
+           $"CREATE DATABASE {_databaseName}" + Environment.NewLine +
             "GO" + Environment.NewLine;
 
         // should only be a method if multiple table names are specified (which aren't though)
-        public string DropTableStatement(string tableName) =>
-           $"USE {DatabaseName}" + Environment.NewLine +
+        private string DropTableStatement(string tableName) =>
+           $"USE {_databaseName}" + Environment.NewLine +
             "GO" + Environment.NewLine + Environment.NewLine +
-           $"IF OBJECT_ID('{SchemaName}.{tableName}', 'U') IS NOT NULL" + Environment.NewLine +
-           $"DROP TABLE {SchemaName}.{tableName}" + Environment.NewLine +
+           $"IF OBJECT_ID('{_schemaName}.{tableName}', 'U') IS NOT NULL" + Environment.NewLine +
+           $"DROP TABLE {_schemaName}.{tableName}" + Environment.NewLine +
             "GO" + Environment.NewLine + Environment.NewLine;
 
 
         /// <summary>
-        /// Creates a JsonConvert object for generation of DDL Code
+        /// Creates a JsonConvert object for generation of DDL Code<br/>
+        /// DDL is within <paramref name="databaseName"/> and qualifies <paramref name="defaultTableName"/> 
+        /// with <paramref name="schemaName"/><br/>
+        /// Statements for drop table and create database are optional
         /// </summary>
-        /// <param name="databaseName">name of the database</param>
-        /// <param name="defaultTableName">if json parser wont find multiple tables, this defualt will be used</param>
-        /// <param name="schemaName">name of used schema (default dbo)</param>
-        /// <param name="hasDropTableStatement">is drop table if exists required? (default true)</param>
-        /// <param name="HasCreateDbStatement">is craete db if not exists required? (default false)</param>
+        /// <param name="databaseName">name of the database</param><br/>
+        /// <param name="defaultTableName">if json parser wont find multiple tables, this default will be used</param><br/>
+        /// <param name="schemaName" example="dbo">name of used schema (default dbo)</param><br/>
+        /// <param name="hasDropTableStatement">is drop table if exists required? (default true)</param><br/>
+        /// <param name="HasCreateDbStatement">is craete db if not exists required? (default false)</param><br/>
         public JsonConvert(string databaseName
             , string defaultTableName
             , string schemaName = "dbo"
@@ -70,15 +54,14 @@ namespace JsonToSQL
             , bool hasCreateDbStatement = false
         )
         {
-            DatabaseName = databaseName;
-            DefaultTableName = defaultTableName;
-            SchemaName = schemaName;
-            HasDropTableStatement = hasDropTableStatement;
-            HasCreateDbStatement = hasCreateDbStatement;
+            _databaseName = databaseName;
+            _defaultTableName = defaultTableName;
+            _schemaName = schemaName;
+            _hasDropTableStatement = hasDropTableStatement;
+            _hasCreateDbStatement = hasCreateDbStatement;
         }
 
 
-        // ? Id will always be auto generated, right?
 
         private DataSet ds = new DataSet();
         private List<TableRelation> relations = new List<TableRelation>();
@@ -95,15 +78,20 @@ namespace JsonToSQL
             }
         }
 
+        public string ToSQL(Uri uri) => ToSQL(File.ReadAllText(uri.OriginalString));
+
+        // todo check if apostrophe is in payload, mask out
+        // todo ensure id handling is ok
+        // todo insert CreatedAt column
         public string ToSQL(string json)
         {
-            ds.DataSetName = this.DatabaseName;
+            ds.DataSetName = this._databaseName;
 
             var jToken = JToken.Parse(json);
 
             if (jToken.Type == JTokenType.Object) //single json object 
             {
-                ParseJObject(jToken.ToObject<JObject>(), this.DefaultTableName, string.Empty, 1, 1);
+                parseJObject(jToken.ToObject<JObject>(), this._defaultTableName, string.Empty, 1, 1);
             }
             else //multiple json objects in array 
             {
@@ -111,7 +99,7 @@ namespace JsonToSQL
                 // HACK there are no derived table names here
                 foreach (var jObject in jToken.Children<JObject>())
                 {
-                    ParseJObject(jObject, this.DefaultTableName, string.Empty, counter, counter);
+                    parseJObject(jObject, this._defaultTableName, string.Empty, counter, counter);
                     counter++;
                 }
             }
@@ -135,7 +123,7 @@ namespace JsonToSQL
                 target.Constraints.Add(fk);
             }
 
-            string createScript = GenerateDbSchema(ds, relations, HasDropTableStatement, HasCreateDbStatement);
+            string createScript = generateDbSchema(ds, relations, _hasDropTableStatement, _hasCreateDbStatement);
 
 
             string script = createScript + SqlScript.GenerateInsertQueries(ds, relations);
@@ -144,7 +132,7 @@ namespace JsonToSQL
         }
 
 
-        private void ParseJObject(JObject jObject, string tableName, string parentTableName, int pkValue, int fkValue)
+        private void parseJObject(JObject jObject, string tableName, string parentTableName, int pkValue, int fkValue)
         {
             if (jObject.Count > 0)
             {
@@ -172,7 +160,7 @@ namespace JsonToSQL
                     if (jToken.Type == JTokenType.Object)
                     {
                         var jO = jToken.ToObject<JObject>();
-                        ParseJObject(jO, tableName + "_" + key, tableName, pkValue, pkValue);
+                        parseJObject(jO, tableName + "_" + key, tableName, pkValue, pkValue);
                         //pkValue = pkValue + 1;
                     }
                     else if (jToken.Type == JTokenType.Array)
@@ -186,7 +174,7 @@ namespace JsonToSQL
                             {
                                 index = index + 1;
                                 var jo = arr.ToObject<JObject>();
-                                ParseJObject(jo, tableName + "_" + key, tableName, index, pkValue);
+                                parseJObject(jo, tableName + "_" + key, tableName, index, pkValue);
                             }
                         }
                         else
@@ -211,7 +199,7 @@ namespace JsonToSQL
                     {
                         if (!ds.Tables[dt.TableName].Columns.Contains(key))
                         {
-                            ds.Tables[dt.TableName].Columns.Add(AddColumn(key, "System.String", false));
+                            ds.Tables[dt.TableName].Columns.Add(addColumn(key, "System.String", false));
                         }
                     }
 
@@ -234,7 +222,7 @@ namespace JsonToSQL
                             type = "System.Int32"; //foreign key
                         }
 
-                        dt.Columns.Add(AddColumn(dic.Keys.ToArray()[i], type, i == 0 ? true : false));
+                        dt.Columns.Add(addColumn(dic.Keys.ToArray()[i], type, i == 0 ? true : false));
                     }
 
                     dt.Rows.Add(dic.Values.ToArray());
@@ -251,7 +239,7 @@ namespace JsonToSQL
             }
         }
 
-        private DataColumn AddColumn(string name, string type, bool isPrimaryKey)
+        private DataColumn addColumn(string name, string type, bool isPrimaryKey)
         {
             return new DataColumn()
             {
@@ -264,7 +252,7 @@ namespace JsonToSQL
             };
         }
 
-        public string GenerateDbSchema(DataSet ds, List<TableRelation> relations, bool hasDropTableStatement, bool HasCreateDbStatement)
+        private string generateDbSchema(DataSet ds, List<TableRelation> relations, bool hasDropTableStatement, bool HasCreateDbStatement)
         {
             StringBuilder sb = new StringBuilder();
 
@@ -278,7 +266,7 @@ namespace JsonToSQL
             {
                 DataTable table = ds.Tables[rel.Target];
 
-                if (HasDropTableStatement)
+                if (_hasDropTableStatement)
                 {
                     sb.AppendLine(DropTableStatement(table.TableName));
                 }

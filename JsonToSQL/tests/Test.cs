@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,11 +11,11 @@ namespace JsonToSql
     {
         public static void Main(string[] args)
         {
-            string json = File.ReadAllText("tests/DSICH.json");
-
+            Uri json = new Uri("tests/DSICH.json", UriKind.Relative);
             var converter = new JsonConvert("JsonDb", "DSICH", "dbo", true, true);
             string result = converter.ToSQL(json);
             Console.WriteLine(result);
+
         }
     }
 }
