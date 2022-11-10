@@ -12,7 +12,7 @@ namespace JsonToSql
         {
             string json = File.ReadAllText("tests/DSICH.json");
 
-            var converter = new JsonConvert("JsonDb", "DSICH");
+            var converter = new JsonConvert("JsonDb", "DSICH", "dbo", true, true);
             string result = converter.ToSQL(json);
             Console.WriteLine(result);
         }

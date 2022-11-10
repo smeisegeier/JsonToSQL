@@ -79,12 +79,11 @@ namespace JsonToSQL
 
 
         // ? Id will always be auto generated, right?
-        // todo make non static
 
-        static DataSet ds = new DataSet();
-        static List<TableRelation> relations = new List<TableRelation>();
+        private DataSet ds = new DataSet();
+        private List<TableRelation> relations = new List<TableRelation>();
 
-        static int index = 0;
+        private int index = 0;
 
         public string ToSQL(Stream jsonStream)
         {
@@ -291,13 +290,6 @@ namespace JsonToSQL
 
             return sb.ToString();
         }
-
-
-
-
-
-
-
 
     }
 }
