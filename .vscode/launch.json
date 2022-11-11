@@ -5,20 +5,15 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": ".NET Core Launch (console)",
+            "name": "JsonToSQLUnitTest .NET Core Launch (console)",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/JsonToSQL/bin/Debug/net6.0/JsonToSQL.dll",
+            "program": "${workspaceFolder}/JsonToSQLUnitTest/bin/Debug/net7.0/JsonToSQLUnitTest.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/JsonToSQL",
+            "cwd": "${workspaceFolder}/JsonToSQLUnitTest",
             "console": "internalConsole",
             "stopAtEntry": false
-        },
-        {
-            "name": ".NET Core Attach",
-            "type": "coreclr",
-            "request": "attach"
         }
     ]
 }

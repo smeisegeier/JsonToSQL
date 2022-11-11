@@ -1,11 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.IO;
-using System.Linq;
+﻿using System.Data;
 using System.Text;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace JsonToSQL
@@ -80,9 +74,11 @@ namespace JsonToSQL
 
         public string ToSQL(Uri uri) => ToSQL(File.ReadAllText(uri.OriginalString));
 
+        // todo extend test methods
         // todo check if apostrophe is in payload, mask out
         // todo ensure id handling is ok
         // todo insert CreatedAt column
+        // todo deal w/ assembly info
         public string ToSQL(string json)
         {
             ds.DataSetName = this._databaseName;

@@ -1,0 +1,47 @@
+[
+  {
+    "DSICH_Id": "0",
+    "DSICH_Name": "Obduktion",
+    "DSICH_Label": "0 - Obduktion"
+  },
+  {
+    "DSICH_Id": "1",
+    "DSICH_Name": "klinisch ohne spez. Diagnostik",
+    "DSICH_Label": "1 - klinisch ohne spez. Diagnostik"
+  },
+  {
+    "DSICH_Id": "2",
+    "DSICH_Name": "klinische Diagnostik",
+    "DSICH_Label": "2 - klinische Diagnostik"
+  },
+  {
+    "DSICH_Id": "3",
+    "DSICH_Name": "Todesbescheinigung (DCO)",
+    "DSICH_Label": "3 - Todesbescheinigung (DCO)"
+  },
+  {
+    "DSICH_Id": "4",
+    "DSICH_Name": "spez. Tumormarker",
+    "DSICH_Label": "4 - spez. Tumormarker"
+  },
+  {
+    "DSICH_Id": "5",
+    "DSICH_Name": "Zytologie",
+    "DSICH_Label": "5 - Zytologie"
+  },
+  {
+    "DSICH_Id": "6",
+    "DSICH_Name": "Histologie Metastase",
+    "DSICH_Label": "6 - Histologie Metastase"
+  },
+  {
+    "DSICH_Id": "7",
+    "DSICH_Name": "Histologie Primärtumor",
+    "DSICH_Label": "7 - Histologie Primärtumor"
+  },
+  {
+    "DSICH_Id": "8",
+    "DSICH_Name": "Sonstige",
+    "DSICH_Label": "8 - Sonstige"
+  }
+]
