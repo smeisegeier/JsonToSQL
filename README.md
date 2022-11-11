@@ -18,6 +18,10 @@ Thank You!
 
 # changes in fork 
 
+
+![GitHub languages](https://img.shields.io/github/languages/count/smeisegeier/JsonToSQL?style=plastic) languages count  
+
+
 ## usage
 
 - constructor for `JsonConvert` now takes more parameters
