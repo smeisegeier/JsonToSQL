@@ -25,8 +25,8 @@ Thank You!
   - `databaseName` - name of the database
   - `schemaName` - name of used schema (default dbo)
   - `hasDropTableStatement` - is drop table if exists required? (default true)
-  - HasCreateDbStatement - is create db if not exists required? (default false)
-- ToSQL() now also accepts Uri parameter for json file path
+  - `HasCreateDbStatement` - is create db if not exists required? (default false)
+- `ToSQL()` now also accepts Uri parameter for json file path
 
 ## example
 
@@ -35,3 +35,15 @@ Thank You!
     var converter = new JsonConvert("JsonDb", "Test", "dbo", true, true);
     string result = converter.ToSQL(json);
 ```
+
+## dependencies
+
+- &gt;= net6
+- Newtonsoft Json
+
+## roadmap
+
+- [x] migrate solution to newer net version, port to visual studio code
+- [x] add options for precise sql code generation
+- [ ] validate results
+  
