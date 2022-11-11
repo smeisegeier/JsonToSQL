@@ -40,7 +40,7 @@ namespace JsonToSQL
         /// <param name="defaultTableName">if json parser wont find multiple tables, this default will be used</param><br/>
         /// <param name="schemaName" example="dbo">name of used schema (default dbo)</param><br/>
         /// <param name="hasDropTableStatement">is drop table if exists required? (default true)</param><br/>
-        /// <param name="HasCreateDbStatement">is craete db if not exists required? (default false)</param><br/>
+        /// <param name="HasCreateDbStatement">is create db if not exists required? (default false)</param><br/>
         public JsonConvert(string databaseName
             , string defaultTableName
             , string schemaName = "dbo"

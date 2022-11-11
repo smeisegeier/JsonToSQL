@@ -16,3 +16,22 @@ https://www.dotnet4techies.com/2018/07/convert-json-to-sql-format-using-csharp.h
 
 Thank You!
 
+# changes in fork 
+
+## usage
+
+- constructor for `JsonConvert` now takes more parameters
+  - `defaultTableName` - if json parser wont find multiple tables, this default will be used
+  - `databaseName` - name of the database
+  - `schemaName` - name of used schema (default dbo)
+  - `hasDropTableStatement` - is drop table if exists required? (default true)
+  - HasCreateDbStatement - is create db if not exists required? (default false)
+- ToSQL() now also accepts Uri parameter for json file path
+
+## example
+
+```c#
+    Uri json = new Uri(DSICH_JSON_PATH, UriKind.Relative);
+    var converter = new JsonConvert("JsonDb", "Test", "dbo", true, true);
+    string result = converter.ToSQL(json);
+```
