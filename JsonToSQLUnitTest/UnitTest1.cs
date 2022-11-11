@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using JsonToSQL;
 using Xunit;
 
@@ -8,36 +9,29 @@ namespace JsonToSQLUnitTest;
 public class UnitTest1
 {
 
-    [Fact]
-    public void ConvertJsonStringToSQL()
+
+    [InlineData("JsonDb", "DSICH", "dbo", true, true)]
+    [InlineData("JsonDb", "DSICH", "", false, true)]
+    [InlineData("JsonDb", "DSICH", "...", false, false)]
+    [Theory]
+    public void ConstructorTest(string db, string tbl, string schema, bool dbOk, bool tblOk)
     {
-        //Json string to SQL script
-        var converter = new JsonConvert("JsonDb", "DSICH", "dbo", true, true);
-
-        string json = File.ReadAllText(Program.DSICH_JSON_PATH);
-
-        string sqlScript = converter.ToSQL(json);
-
-        Assert.Equal(json, json);
+        var converter = new JsonConvert(db, tbl, schema, tblOk, dbOk);
+        string actual = converter.ToSQL(Program.dsich_json);
+        Assert.False(String.IsNullOrEmpty(actual));
     }
 
-    // [Fact]
-    // public void ConvertJsonStreamToSQL()
-    // {
-    //     //Json stream to SQL script
-    //     var converter = new JsonConvert("JsonDb", "DSICH", "dbo", true, true);
+    [InlineData(true, "JsonDb", "DSICH", "dbo", true, true)]
+    [InlineData(false, "JsonDb", "DSICH", "dbo", false, false)]
+    [InlineData(false, "JsonDb", "DSICH", "dbo", true, false)]
+    [InlineData(true, "JsonDb", "DSICH", "dbo", false, true)]
+    [Theory]
+    public void GenerateDropStatementTest(bool expected, string db, string tbl, string schema, bool dbOk, bool tblOk)
+    {
+        //Json string to SQL script
+        var converter = new JsonConvert(db, tbl, schema, tblOk, dbOk);
+        bool actual = (converter.ToSQL(Program.dsich_json)).Contains("DROP");
+        Assert.Equal(expected, actual);
+    }
 
-    //     string jsonFilePath = "E:\\json1.txt";
-
-    //     using (FileStream fs = File.OpenRead(jsonFilePath))
-    //     {
-    //         MemoryStream ms = new MemoryStream();
-    //         ms.SetLength(fs.Length);
-    //         fs.Read(ms.GetBuffer(), 0, (int)fs.Length);
-
-    //         string sqlScript = converter.ToSQL(ms);
-    //     }
-
-    //     Assert.Equal(null, null);
-    // }
 }

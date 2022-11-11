@@ -5,6 +5,8 @@ namespace JsonToSQLUnitTest
     public static class Program
     {
         public const string DSICH_JSON_PATH = "assets/DSICH.json";
+        public static string dsich_json => File.ReadAllText(Program.DSICH_JSON_PATH);
+
 
         public static void Main(string[] args)
         {
