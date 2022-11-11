@@ -20,6 +20,8 @@ Thank You!
 
 
 ![GitHub languages](https://img.shields.io/github/languages/count/smeisegeier/JsonToSQL?style=plastic) languages count  
+![tag](https://img.shields.io/github/v/tag/smeisegeier/JsonToSQL?style=plastic) version
+
 
 
 ## usage
