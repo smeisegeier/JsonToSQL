@@ -12,7 +12,9 @@ namespace JsonToSQLUnitTest
         {
             Uri json = new Uri(DSICH_JSON_PATH, UriKind.Relative);
             var converter = new JsonConvert("JsonDb", "DSICH", "dbo", true, true);
-            string result = converter.ToSQL(json);
+
+            string result = converter.ToSQL(json); // "" -> Newtonsoft.Json.JsonReaderException
+
             Console.WriteLine(result);
         }
     }

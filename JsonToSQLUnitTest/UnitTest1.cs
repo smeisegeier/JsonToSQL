@@ -8,6 +8,7 @@ namespace JsonToSQLUnitTest;
 
 public class UnitTest1
 {
+    private JsonConvert defaultJsonConvert() => new JsonConvert("JsonDb", "DSICH", "dbo", true, true);
 
 
     [InlineData("JsonDb", "DSICH", "dbo", true, true)]
@@ -21,8 +22,8 @@ public class UnitTest1
         Assert.False(String.IsNullOrEmpty(actual));
     }
 
-    [InlineData(true, "JsonDb", "DSICH", "dbo", true, true)]
-    [InlineData(false, "JsonDb", "DSICH", "dbo", false, false)]
+    [InlineData(true, "JsonDb", "DSICH", "dbo", true, true)]        // all options
+    [InlineData(false, "JsonDb", "DSICH", "dbo", false, false)]     // mixtured options
     [InlineData(false, "JsonDb", "DSICH", "dbo", true, false)]
     [InlineData(true, "JsonDb", "DSICH", "dbo", false, true)]
     [Theory]
@@ -32,6 +33,13 @@ public class UnitTest1
         var converter = new JsonConvert(db, tbl, schema, tblOk, dbOk);
         bool actual = (converter.ToSQL(Program.dsich_json)).Contains("DROP");
         Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void ContentEmptyExceptionTest()
+    {
+        var converter = defaultJsonConvert();
+        Assert.ThrowsAny<Exception>(() => converter.ToSQL(""));
     }
 
 }
