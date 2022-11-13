@@ -4,6 +4,18 @@ using Newtonsoft.Json.Linq;
 
 namespace JsonToSQL
 {
+    /// <summary>
+    /// Creates a JsonConvert object for generation of DDL Code<br/>
+    /// DDL is within <paramref name="databaseName"/> and qualifies <paramref name="defaultTableName"/> 
+    /// with <paramref name="schemaName"/><br/>
+    /// Statements for drop table and create database are optional
+    /// </summary>
+    /// <param name="databaseName">name of the database</param><br/>
+    /// <param name="defaultTableName">if json parser wont find multiple tables, this default will be used</param><br/>
+    /// <param name="schemaName" example="dbo">name of used schema (default dbo)</param><br/>
+    /// <param name="hasDropTableStatement">is drop table if exists required? (default true)</param><br/>
+    /// <param name="HasCreateDbStatement">is create db if not exists required? (default false)</param><br/>
+
     public class JsonConvert
     {
 
@@ -12,6 +24,9 @@ namespace JsonToSQL
         private string _schemaName;
         private bool _hasDropTableStatement;
         private bool _hasCreateDbStatement;
+
+        // todo insert CreatedAt column
+        private bool _hasCreatedAtColumn;
 
         private string CreateDbStatement =>
             "USE master" + Environment.NewLine +
@@ -77,8 +92,6 @@ namespace JsonToSQL
         // todo extend test methods
         // todo check if apostrophe is in payload, mask out
         // todo ensure id handling is ok
-        // todo insert CreatedAt column
-        // todo deal w/ assembly info
         public string ToSQL(string json)
         {
             ds.DataSetName = this._databaseName;
