@@ -89,9 +89,14 @@ namespace JsonToSQL
 
         public string ToSQL(Uri uri) => ToSQL(File.ReadAllText(uri.OriginalString));
 
-        // todo extend test methods
         // todo check if apostrophe is in payload, mask out
-        // todo ensure id handling is ok
+
+        /// <summary>
+        /// Gets a sql ddl statement to create the given json object.
+        /// Adds a auto inc pk column (tablename)ID. Such column MUST NOT exist in source
+        /// </summary>
+        /// <param name="json"></param>
+        /// <returns></returns>
         public string ToSQL(string json)
         {
             ds.DataSetName = this._databaseName;
