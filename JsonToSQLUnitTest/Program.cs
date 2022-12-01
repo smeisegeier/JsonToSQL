@@ -11,7 +11,7 @@ namespace JsonToSQLUnitTest
         public static void Main(string[] args)
         {
             Uri json = new Uri(DSICH_JSON_PATH, UriKind.Relative);
-            var converter = new JsonConvert("JsonDb", "DSICH", "dbo", true, true);
+            var converter = new JsonConvert("JsonDb", "DSICH", "meta", true, true, true, true);
 
             string result = converter.ToSQL(json); // "" -> Newtonsoft.Json.JsonReaderException
 
