@@ -8,10 +8,10 @@ namespace JsonToSQL
 {
     internal class SqlScript
     {
-        public static string CreateTABLE(DataTable table)
+        public static string CreateTABLE(DataTable table, string fullQualifiedTableName)
         {
             string sqlsc;
-            sqlsc = "CREATE TABLE [" + table.TableName + "](";
+            sqlsc = $"CREATE TABLE {fullQualifiedTableName} (";
             for (int i = 0; i < table.Columns.Count; i++)
             {
                 sqlsc += "\n [" + table.Columns[i].ColumnName + "]";
@@ -92,14 +92,14 @@ namespace JsonToSQL
             return sqlsc;
         }
 
-        public static string GenerateInsertQueries(DataSet ds, List<TableRelation> relations)
+        public static string GenerateInsertQueries(DataSet ds, List<TableRelation> relations, string fullyQualifiedTableName)
         {
             StringBuilder sb = new StringBuilder();
 
             foreach (TableRelation rel in relations.OrderByDescending(i => i.Order))
             {
                 DataTable table = ds.Tables[rel.Target];
-                sb.AppendLine($"SET IDENTITY_INSERT [{table.TableName}] ON");
+                sb.AppendLine($"SET IDENTITY_INSERT {fullyQualifiedTableName} ON");
 
                 foreach (DataRow dr in table.Rows)
                 {
@@ -112,10 +112,10 @@ namespace JsonToSQL
                         values.Add(GetInsertColumnValue(dr, column));
                     }
 
-                    sb.AppendLine($"INSERT INTO [{table.TableName}] ([{string.Join("], [", names.ToArray())}]) VALUES ({string.Join(", ", values.ToArray())})");
+                    sb.AppendLine($"INSERT INTO {fullyQualifiedTableName} ([{string.Join("], [", names.ToArray())}]) VALUES ({string.Join(", ", values.ToArray())})");
                 }
 
-                sb.AppendLine($"SET IDENTITY_INSERT [{table.TableName}] OFF");
+                sb.AppendLine($"SET IDENTITY_INSERT {fullyQualifiedTableName} OFF");
                 sb.AppendLine("GO");
             }
 

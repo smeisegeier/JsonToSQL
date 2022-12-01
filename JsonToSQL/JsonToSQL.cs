@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using System.Globalization;
 using System.Text;
 using Newtonsoft.Json.Linq;
 
@@ -18,30 +19,34 @@ namespace JsonToSQL
 
     public class JsonConvert
     {
+        private const string IDSUFFIX = "ID";
 
-        private string _databaseName;
-        private string _defaultTableName;
-        private string _schemaName;
-        private bool _hasDropTableStatement;
-        private bool _hasCreateDbStatement;
+        private string DatabaseName { get; }
+        private string TableName { get; }
+        private string SchemaName { get; }
+        private bool HasDropTableStatement { get; }
+        private bool HasCreateDbStatement { get; }
+        private bool HasAutoIdColumn { get; }
 
-        // todo insert CreatedAt column
-        private bool _hasCreatedAtColumn;
+        private bool HasCreatedAtColumn { get; }
 
-        private string CreateDbStatement =>
+
+        private string FullyQualifiedTableName => $"[{SchemaName}].[{TableName}]";
+
+        private string StatementCreateDb =>
             "USE master" + Environment.NewLine +
             "GO" + Environment.NewLine + Environment.NewLine +
             "IF NOT EXISTS(SELECT name FROM sys.databases" + Environment.NewLine +
-           $"WHERE name = '{_databaseName}')" + Environment.NewLine +
-           $"CREATE DATABASE {_databaseName}" + Environment.NewLine +
+           $"WHERE name = '{DatabaseName}')" + Environment.NewLine +
+           $"CREATE DATABASE {DatabaseName}" + Environment.NewLine +
             "GO" + Environment.NewLine;
 
         // should only be a method if multiple table names are specified (which aren't though)
-        private string DropTableStatement(string tableName) =>
-           $"USE {_databaseName}" + Environment.NewLine +
+        private string StatementDropTable =>
+           $"USE {DatabaseName}" + Environment.NewLine +
             "GO" + Environment.NewLine + Environment.NewLine +
-           $"IF OBJECT_ID('{_schemaName}.{tableName}', 'U') IS NOT NULL" + Environment.NewLine +
-           $"DROP TABLE {_schemaName}.{tableName}" + Environment.NewLine +
+           $"IF OBJECT_ID('{FullyQualifiedTableName}', 'U') IS NOT NULL" + Environment.NewLine +
+           $"DROP TABLE {FullyQualifiedTableName}" + Environment.NewLine +
             "GO" + Environment.NewLine + Environment.NewLine;
 
 
@@ -61,13 +66,17 @@ namespace JsonToSQL
             , string schemaName = "dbo"
             , bool hasDropTableStatement = true
             , bool hasCreateDbStatement = false
+            , bool hasAutoIdColumn = false
+            , bool hasCreatedAtColumn = true
         )
         {
-            _databaseName = databaseName;
-            _defaultTableName = defaultTableName;
-            _schemaName = schemaName;
-            _hasDropTableStatement = hasDropTableStatement;
-            _hasCreateDbStatement = hasCreateDbStatement;
+            DatabaseName = databaseName;
+            TableName = defaultTableName;
+            SchemaName = schemaName;
+            HasDropTableStatement = hasDropTableStatement;
+            HasCreateDbStatement = hasCreateDbStatement;
+            HasAutoIdColumn = hasAutoIdColumn;
+            HasCreatedAtColumn = hasCreatedAtColumn;
         }
 
 
@@ -99,24 +108,25 @@ namespace JsonToSQL
         /// <returns></returns>
         public string ToSQL(string json)
         {
-            ds.DataSetName = this._databaseName;
+            ds.DataSetName = this.DatabaseName;
 
             var jToken = JToken.Parse(json);
 
             if (jToken.Type == JTokenType.Object) //single json object 
             {
-                parseJObject(jToken.ToObject<JObject>(), this._defaultTableName, string.Empty, 1, 1);
+                parseJObject(jToken.ToObject<JObject>(), this.TableName, string.Empty, 1, 1);
             }
             else //multiple json objects in array 
             {
                 var counter = 1;
-                // HACK there are no derived table names here
                 foreach (var jObject in jToken.Children<JObject>())
                 {
-                    parseJObject(jObject, this._defaultTableName, string.Empty, counter, counter);
+                    parseJObject(jObject, this.TableName, string.Empty, counter, counter);
                     counter++;
                 }
             }
+
+            // this only applies for nested json
 
             foreach (TableRelation rel in relations.OrderByDescending(i => i.Order))
             {
@@ -127,7 +137,7 @@ namespace JsonToSQL
 
                 if (source == null)
                 {
-                    target.Columns.Remove(rel.Source + "ID");
+                    target.Columns.Remove(rel.Source + IDSUFFIX);
                     continue;
                 }
 
@@ -137,12 +147,12 @@ namespace JsonToSQL
                 target.Constraints.Add(fk);
             }
 
-            string createScript = generateDbSchema(ds, relations, _hasDropTableStatement, _hasCreateDbStatement);
+            string createScript = generateDbSchema(ds, relations, HasDropTableStatement, HasCreateDbStatement);
 
 
-            string script = createScript + SqlScript.GenerateInsertQueries(ds, relations);
+            string insertScript = SqlScript.GenerateInsertQueries(ds, relations, FullyQualifiedTableName);
 
-            return script;
+            return createScript + insertScript;
         }
 
 
@@ -154,16 +164,17 @@ namespace JsonToSQL
 
                 Dictionary<string, string> dic = new Dictionary<string, string>();
                 List<SqlColumn> listColumns = new List<SqlColumn>();
-                //SqlColumn sqlColumn = new SqlColumn();
-                //listColumns.Add(sqlColumn);
-                //sqlColumn
-                listColumns.Add(new SqlColumn { Name = tableName + "ID", Value = pkValue.ToString(), Type = "System.Int32" });
-                dic[tableName + "ID"] = pkValue.ToString(); //primary key
+
+                if (HasAutoIdColumn)
+                {
+                    listColumns.Add(new SqlColumn { Name = tableName + IDSUFFIX, Value = pkValue.ToString(), Type = "System.Int32" });
+                    dic[tableName + IDSUFFIX] = pkValue.ToString(); //primary key
+                }
 
                 if (!string.IsNullOrEmpty(parentTableName))
                 {
-                    listColumns.Add(new SqlColumn { Name = parentTableName + "ID", Value = fkValue.ToString(), Type = "System.Int32" });
-                    dic[parentTableName + "ID"] = fkValue.ToString(); //foreign key
+                    listColumns.Add(new SqlColumn { Name = parentTableName + IDSUFFIX, Value = fkValue.ToString(), Type = "System.Int32" });
+                    dic[parentTableName + IDSUFFIX] = fkValue.ToString(); //foreign key
                 }
 
                 foreach (JProperty property in jObject.Properties())
@@ -202,6 +213,12 @@ namespace JsonToSQL
                         listColumns.Add(new SqlColumn { Name = key, Value = jToken.ToString(), Type = "System." + jToken.Type.ToString() });
                         dic[key] = jToken.ToString();
                     }
+                }
+
+                if (HasCreatedAtColumn)
+                {
+                    listColumns.Add(new SqlColumn { Name = "CreatedAt", Value = DateTime.UtcNow.ToString(), Type = "System.DateTime" });
+                    dic["CreatedAt"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture); 
                 }
 
                 pkValue = pkValue + 1;
@@ -272,7 +289,7 @@ namespace JsonToSQL
 
             if (HasCreateDbStatement)
             {
-                sb.AppendLine(CreateDbStatement);
+                sb.AppendLine(StatementCreateDb);
             }
 
 
@@ -280,12 +297,14 @@ namespace JsonToSQL
             {
                 DataTable table = ds.Tables[rel.Target];
 
-                if (_hasDropTableStatement)
+                if (HasDropTableStatement)
                 {
-                    sb.AppendLine(DropTableStatement(table.TableName));
+                    // HACK by using one fixed FQTableName, relations do not work anymore. Its not within scope, though
+                    //sb.AppendLine(StatementDropTable(table.TableName));
+                    sb.AppendLine(StatementDropTable);
                 }
 
-                sb.AppendLine(SqlScript.CreateTABLE(table));
+                sb.AppendLine(SqlScript.CreateTABLE(table, FullyQualifiedTableName));
                 sb.AppendLine("GO");
                 sb.AppendLine(string.Empty);
             }

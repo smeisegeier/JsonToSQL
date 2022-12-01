@@ -9,7 +9,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/JsonToSQLUnitTest/bin/Debug/net7.0/JsonToSQLUnitTest.dll",
+            "program": "${workspaceFolder}/JsonToSQLUnitTest/bin/Debug/net6.0/JsonToSQLUnitTest.dll",
             "args": [],
             "cwd": "${workspaceFolder}/JsonToSQLUnitTest",
             "console": "internalConsole",
