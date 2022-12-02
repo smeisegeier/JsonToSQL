@@ -67,7 +67,7 @@ namespace JsonToSQL
             , bool hasDropTableStatement = true
             , bool hasCreateDbStatement = false
             , bool hasAutoIdColumn = false
-            , bool hasCreatedAtColumn = true
+            , bool hasCreatedAtColumn = false
         )
         {
             DatabaseName = databaseName;
@@ -165,6 +165,8 @@ namespace JsonToSQL
                 Dictionary<string, string> dic = new Dictionary<string, string>();
                 List<SqlColumn> listColumns = new List<SqlColumn>();
 
+
+                // todo check if autoid already exists
                 if (HasAutoIdColumn)
                 {
                     listColumns.Add(new SqlColumn { Name = tableName + IDSUFFIX, Value = pkValue.ToString(), Type = "System.Int32" });
@@ -217,8 +219,8 @@ namespace JsonToSQL
 
                 if (HasCreatedAtColumn)
                 {
-                    listColumns.Add(new SqlColumn { Name = "CreatedAt", Value = DateTime.UtcNow.ToString(), Type = "System.DateTime" });
-                    dic["CreatedAt"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture); 
+                    listColumns.Add(new SqlColumn { Name = "CreatedAt", Value = DateTime.UtcNow.ToString(), Type = "System.String" });
+                    dic["CreatedAt"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
                 }
 
                 pkValue = pkValue + 1;
